@@ -569,7 +569,7 @@ var _ = Describe("Mutating Webhook Presets", func() {
 			Expect(vmi.Spec.Domain.CPU.Model).To(Equal(vmCPUModel))
 		})
 
-		It("Should has empty cpu model when cpu model is not set", func() {
+		It("Should have empty cpu model when cpu model is not set", func() {
 			cfgMap = k8sv1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "kubevirt",
@@ -582,6 +582,37 @@ var _ = Describe("Mutating Webhook Presets", func() {
 			setDefaultCPUModel(&vmi, configMapIndexer)
 			Expect(vmi.Spec.Domain.CPU).ToNot(BeNil())
 			Expect(vmi.Spec.Domain.CPU.Model).To(BeEmpty())
+		})
+	})
+
+	Context("Apply default machine type", func() {
+		var vmi v1.VirtualMachineInstance
+		var defaultMachineTypeKey = "pc-q35-3.1"
+		configMapIndexer := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, nil)
+		cfgMap := k8sv1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "kubevirt",
+				Name:      "kubevirt-config",
+			},
+			Data: map[string]string{
+				defaultMachineTypeKey: defaultMachineTypeKey,
+			},
+		}
+		configMapIndexer.Add(&cfgMap)
+
+		BeforeEach(func() {
+			vmi = v1.VirtualMachineInstance{Spec: v1.VirtualMachineInstanceSpec{Domain: v1.DomainSpec{}}}
+		})
+
+		It("Should set a default machine type when vmi doesn't have it", func() {
+			setClusterMachineType(&vmi, configMapIndexer)
+			Expect(vmi.Spec.Domain.Machine.Type, defaultMachineTypeKey)
+		})
+
+		It("Should not set a default machine type when vmi has it", func() {
+			vmi.Spec.Domain.Machine.Type = "q35"
+			setClusterMachineType(&vmi, configMapIndexer)
+			Expect(vmi.Spec.Domain.Machine.Type, "q35")
 		})
 	})
 

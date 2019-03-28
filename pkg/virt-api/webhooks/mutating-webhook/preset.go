@@ -35,9 +35,10 @@ import (
 )
 
 const (
-	exclusionMarking   = "virtualmachineinstancepresets.admission.kubevirt.io/exclude"
-	configMapName      = "kubevirt-config"
-	defaultCPUModelKey = "default-cpu-model"
+	exclusionMarking      = "virtualmachineinstancepresets.admission.kubevirt.io/exclude"
+	configMapName         = "kubevirt-config"
+	defaultCPUModelKey    = "default-cpu-model"
+	defaultMachineTypeKey = "default-machine-type"
 )
 
 // listPresets returns all VirtualMachinePresets by namespace
@@ -301,4 +302,20 @@ func setDefaultCPUModel(vmi *kubev1.VirtualMachineInstance, configMapStore cache
 			}
 		}
 	}
+}
+
+func setClusterMachineType(vmi *kubev1.VirtualMachineInstance, configMapStore cache.Store) error {
+	if vmi.Spec.Domain.Machine.Type != "" {
+		return nil
+	}
+	namespace, err := util.GetNamespace()
+	if err != nil {
+		return err
+	}
+	if obj, exists, err := configMapStore.GetByKey(namespace + "/" + configMapName); err == nil && exists {
+		if machineType := obj.(*k8sv1.ConfigMap).Data[defaultMachineTypeKey]; machineType != "" {
+			vmi.Spec.Domain.Machine.Type = machineType
+		}
+	}
+	return nil
 }

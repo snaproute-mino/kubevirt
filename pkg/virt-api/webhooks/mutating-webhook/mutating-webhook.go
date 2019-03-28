@@ -113,6 +113,9 @@ func mutateVMIs(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	// Set VMI defaults
 	log.Log.Object(&vmi).V(4).Info("Apply defaults")
+	if err := setClusterMachineType(&vmi, informers.ConfigMapInformer.GetStore()); err != nil {
+		return webhooks.ToAdmissionResponseError(err)
+	}
 	kubev1.SetObjectDefaults_VirtualMachineInstance(&vmi)
 
 	// Add foreground finalizer
