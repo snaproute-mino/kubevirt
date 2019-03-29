@@ -903,7 +903,16 @@ type DHCPOptions struct {
 	PrivateOptions []DHCPPrivateOptions `json:"privateOptions,omitempty"`
 }
 
+type OptionEncoding string
+
+const (
+	PLAINTEXT OptionEncoding = "plaintext"
+	BASE64    OptionEncoding = "base64"
+)
+
 // DHCPExtraOptions defines Extra DHCP options for a VM.
+// ---
+// +k8s:openapi-gen=true
 type DHCPPrivateOptions struct {
 	// Option is an Integer value from 224-254
 	// Required.
@@ -911,6 +920,10 @@ type DHCPPrivateOptions struct {
 	// Value is a String value for the Option provided
 	// Required.
 	Value string `json:"value"`
+	// Encoding specifies how value should be interpreted.
+	// One of: plaintext (default), base64
+	// +optional
+	Encoding OptionEncoding `json:"encoding,omitempty"`
 }
 
 // Represents the method which will be used to connect the interface to the guest.

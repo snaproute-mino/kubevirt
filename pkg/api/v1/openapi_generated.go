@@ -41,6 +41,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource":                     schema_kubevirt_pkg_api_v1_ConfigMapVolumeSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.ContainerDiskSource":                       schema_kubevirt_pkg_api_v1_ContainerDiskSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.DHCPOptions":                               schema_kubevirt_pkg_api_v1_DHCPOptions(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.DHCPPrivateOptions":                        schema_kubevirt_pkg_api_v1_DHCPPrivateOptions(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource":                          schema_kubevirt_pkg_api_v1_DataVolumeSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Devices":                                   schema_kubevirt_pkg_api_v1_Devices(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Disk":                                      schema_kubevirt_pkg_api_v1_Disk(ref),
@@ -527,6 +528,41 @@ func schema_kubevirt_pkg_api_v1_DHCPOptions(ref common.ReferenceCallback) common
 		},
 		Dependencies: []string{
 			"kubevirt.io/kubevirt/pkg/api/v1.DHCPPrivateOptions"},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_DHCPPrivateOptions(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DHCPExtraOptions defines Extra DHCP options for a VM.",
+				Properties: map[string]spec.Schema{
+					"option": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Option is an Integer value from 224-254 Required.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Value is a String value for the Option provided Required.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"encoding": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Encoding specifies how value should be interpreted. One of: plaintext (default), base64",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"option", "value"},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 

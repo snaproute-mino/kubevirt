@@ -125,6 +125,15 @@ func SetObjectDefaults_VirtualMachine(in *VirtualMachine) {
 				SetDefaults_I6300ESBWatchdog(in.Spec.Template.Spec.Domain.Devices.Watchdog.WatchdogDevice.I6300ESB)
 			}
 		}
+		for i := range in.Spec.Template.Spec.Domain.Devices.Interfaces {
+			a := &in.Spec.Template.Spec.Domain.Devices.Interfaces[i]
+			if a.DHCPOptions != nil {
+				for j := range a.DHCPOptions.PrivateOptions {
+					b := &a.DHCPOptions.PrivateOptions[j]
+					SetDefaults_DHCPPrivateOptions(b)
+				}
+			}
+		}
 	}
 }
 
@@ -204,6 +213,15 @@ func SetObjectDefaults_VirtualMachineInstance(in *VirtualMachineInstance) {
 		SetDefaults_Watchdog(in.Spec.Domain.Devices.Watchdog)
 		if in.Spec.Domain.Devices.Watchdog.WatchdogDevice.I6300ESB != nil {
 			SetDefaults_I6300ESBWatchdog(in.Spec.Domain.Devices.Watchdog.WatchdogDevice.I6300ESB)
+		}
+	}
+	for i := range in.Spec.Domain.Devices.Interfaces {
+		a := &in.Spec.Domain.Devices.Interfaces[i]
+		if a.DHCPOptions != nil {
+			for j := range a.DHCPOptions.PrivateOptions {
+				b := &a.DHCPOptions.PrivateOptions[j]
+				SetDefaults_DHCPPrivateOptions(b)
+			}
 		}
 	}
 }
@@ -293,6 +311,15 @@ func SetObjectDefaults_VirtualMachineInstancePreset(in *VirtualMachineInstancePr
 				SetDefaults_I6300ESBWatchdog(in.Spec.Domain.Devices.Watchdog.WatchdogDevice.I6300ESB)
 			}
 		}
+		for i := range in.Spec.Domain.Devices.Interfaces {
+			a := &in.Spec.Domain.Devices.Interfaces[i]
+			if a.DHCPOptions != nil {
+				for j := range a.DHCPOptions.PrivateOptions {
+					b := &a.DHCPOptions.PrivateOptions[j]
+					SetDefaults_DHCPPrivateOptions(b)
+				}
+			}
+		}
 	}
 }
 
@@ -379,6 +406,15 @@ func SetObjectDefaults_VirtualMachineInstanceReplicaSet(in *VirtualMachineInstan
 			SetDefaults_Watchdog(in.Spec.Template.Spec.Domain.Devices.Watchdog)
 			if in.Spec.Template.Spec.Domain.Devices.Watchdog.WatchdogDevice.I6300ESB != nil {
 				SetDefaults_I6300ESBWatchdog(in.Spec.Template.Spec.Domain.Devices.Watchdog.WatchdogDevice.I6300ESB)
+			}
+		}
+		for i := range in.Spec.Template.Spec.Domain.Devices.Interfaces {
+			a := &in.Spec.Template.Spec.Domain.Devices.Interfaces[i]
+			if a.DHCPOptions != nil {
+				for j := range a.DHCPOptions.PrivateOptions {
+					b := &a.DHCPOptions.PrivateOptions[j]
+					SetDefaults_DHCPPrivateOptions(b)
+				}
 			}
 		}
 	}

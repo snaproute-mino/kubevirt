@@ -112,36 +112,19 @@ func prepareDHCPOptions(
 	mtuArray := make([]byte, 2)
 	binary.BigEndian.PutUint16(mtuArray, mtu)
 
-	dhcpOptions := dhcp.Options{
-		dhcp.OptionSubnetMask:       []byte(clientMask),
-		dhcp.OptionRouter:           []byte(routerIP),
-		dhcp.OptionDomainNameServer: bytes.Join(dnsIPs, nil),
-		dhcp.OptionInterfaceMTU:     mtuArray,
-	}
-
-	netRoutes := formClasslessRoutes(routes)
-
-	if netRoutes != nil {
-		dhcpOptions[dhcp.OptionClasslessRouteFormat] = netRoutes
-	}
-
-	searchDomainBytes, err := convertSearchDomainsToBytes(searchDomains)
-	if err != nil {
-		return nil, err
-	}
-	if searchDomainBytes != nil {
-		dhcpOptions[dhcp.OptionDomainSearch] = searchDomainBytes
-	}
-
-	dhcpOptions[dhcp.OptionHostName] = []byte(hostname)
-
-	// Windows will ask for the domain name and use it for DNS resolution
-	domainName := getDomainName(searchDomains)
-	if len(domainName) > 0 {
-		dhcpOptions[dhcp.OptionDomainName] = []byte(domainName)
-	}
+	dhcpOptions := dhcp.Options{}
 
 	if customDHCPOptions != nil {
+
+		// Process private options first so they can be overridden by those exposed through API variables
+		if customDHCPOptions.PrivateOptions != nil {
+			for _, privateOptions := range customDHCPOptions.PrivateOptions {
+				if privateOptions.Option > 0 && privateOptions.Option < 255 {
+					dhcpOptions[dhcp.OptionCode(byte(privateOptions.Option))] = []byte(privateOptions.Value)
+				}
+			}
+		}
+
 		if customDHCPOptions.TFTPServerName != "" {
 			log.Log.Infof("Setting dhcp option tftp server name to %s", customDHCPOptions.TFTPServerName)
 			dhcpOptions[dhcp.OptionTFTPServerName] = []byte(customDHCPOptions.TFTPServerName)
@@ -167,14 +150,33 @@ func prepareDHCPOptions(
 
 			dhcpOptions[dhcp.OptionNetworkTimeProtocolServers] = bytes.Join(ntpServers, nil)
 		}
+	}
 
-		if customDHCPOptions.PrivateOptions != nil {
-			for _, privateOptions := range customDHCPOptions.PrivateOptions {
-				if privateOptions.Option >= 224 && privateOptions.Option <= 254 {
-					dhcpOptions[dhcp.OptionCode(byte(privateOptions.Option))] = []byte(privateOptions.Value)
-				}
-			}
-		}
+	dhcpOptions[dhcp.OptionSubnetMask] = []byte(clientMask)
+	dhcpOptions[dhcp.OptionRouter] = []byte(routerIP)
+	dhcpOptions[dhcp.OptionDomainNameServer] = bytes.Join(dnsIPs, nil)
+	dhcpOptions[dhcp.OptionInterfaceMTU] = mtuArray
+
+	netRoutes := formClasslessRoutes(routes)
+
+	if netRoutes != nil {
+		dhcpOptions[dhcp.OptionClasslessRouteFormat] = netRoutes
+	}
+
+	searchDomainBytes, err := convertSearchDomainsToBytes(searchDomains)
+	if err != nil {
+		return nil, err
+	}
+	if searchDomainBytes != nil {
+		dhcpOptions[dhcp.OptionDomainSearch] = searchDomainBytes
+	}
+
+	dhcpOptions[dhcp.OptionHostName] = []byte(hostname)
+
+	// Windows will ask for the domain name and use it for DNS resolution
+	domainName := getDomainName(searchDomains)
+	if len(domainName) > 0 {
+		dhcpOptions[dhcp.OptionDomainName] = []byte(domainName)
 	}
 
 	return dhcpOptions, nil

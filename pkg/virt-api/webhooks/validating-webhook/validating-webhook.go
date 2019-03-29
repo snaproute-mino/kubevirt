@@ -1211,12 +1211,20 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 					})
 					return causes
 				}
-				for _, DHCPPrivateOption := range PrivateOptions {
-					if !(DHCPPrivateOption.Option >= 224 && DHCPPrivateOption.Option <= 254) {
+				privateOptionField := field.Child("domain", "devices", "interfaces").Index(idx).Child("dhcpOptions", "privateOptions")
+				for oidx, DHCPPrivateOption := range PrivateOptions {
+					if !(DHCPPrivateOption.Option > 0 && DHCPPrivateOption.Option < 255) {
 						causes = append(causes, metav1.StatusCause{
 							Type:    metav1.CauseTypeFieldValueInvalid,
-							Message: "provided DHCPPrivateOptions are out of range, must be in range 224 to 254",
-							Field:   field.String(),
+							Message: "provided DHCPPrivateOptions are out of range, must be in range 1 to 254",
+							Field:   privateOptionField.Index(oidx).Child("option").String(),
+						})
+					}
+					if DHCPPrivateOption.Encoding != v1.PLAINTEXT && DHCPPrivateOption.Encoding != v1.BASE64 {
+						causes = append(causes, metav1.StatusCause{
+							Type:    metav1.CauseTypeFieldValueInvalid,
+							Message: "provided DHCPPrivateOptions has an invalid encoding type, must be either 'plaintext' or 'base64'",
+							Field:   privateOptionField.Index(oidx).Child("encoding").String(),
 						})
 					}
 				}

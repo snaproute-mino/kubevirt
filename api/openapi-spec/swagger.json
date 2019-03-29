@@ -4212,6 +4212,10 @@
      "value"
     ],
     "properties": {
+     "encoding": {
+      "description": "Encoding specifies how value should be interpreted.\nOne of: plaintext (default), base64\n+optional",
+      "type": "string"
+     },
      "option": {
       "description": "Option is an Integer value from 224-254\nRequired.",
       "type": "integer",

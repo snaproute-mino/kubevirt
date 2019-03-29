@@ -154,16 +154,9 @@ func setDefaults_Disk(obj *VirtualMachineInstance) {
 	}
 }
 
-func SetDefaults_NetworkInterface(obj *VirtualMachineInstance) {
-	autoAttach := obj.Spec.Domain.Devices.AutoattachPodInterface
-	if autoAttach != nil && *autoAttach == false {
-		return
-	}
-
-	// Override only when nothing is specified
-	if len(obj.Spec.Networks) == 0 {
-		obj.Spec.Domain.Devices.Interfaces = []Interface{*DefaultNetworkInterface()}
-		obj.Spec.Networks = []Network{*DefaultPodNetwork()}
+func SetDefaults_DHCPPrivateOptions(obj *DHCPPrivateOptions) {
+	if len(obj.Encoding) == 0 {
+		obj.Encoding = PLAINTEXT
 	}
 }
 
@@ -195,6 +188,19 @@ func DefaultPodNetwork() *Network {
 		},
 	}
 	return defaultNet
+}
+
+func SetDefaults_NetworkInterface(obj *VirtualMachineInstance) {
+	autoAttach := obj.Spec.Domain.Devices.AutoattachPodInterface
+	if autoAttach != nil && *autoAttach == false {
+		return
+	}
+
+	// Override only when nothing is specified
+	if len(obj.Spec.Networks) == 0 {
+		obj.Spec.Domain.Devices.Interfaces = []Interface{*DefaultNetworkInterface()}
+		obj.Spec.Networks = []Network{*DefaultPodNetwork()}
+	}
 }
 
 func t(v bool) *bool {
