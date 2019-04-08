@@ -21,6 +21,7 @@ package dhcp
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -120,7 +121,16 @@ func prepareDHCPOptions(
 		if customDHCPOptions.PrivateOptions != nil {
 			for _, privateOptions := range customDHCPOptions.PrivateOptions {
 				if privateOptions.Option > 0 && privateOptions.Option < 255 {
-					dhcpOptions[dhcp.OptionCode(byte(privateOptions.Option))] = []byte(privateOptions.Value)
+					var err error
+					data := []byte(privateOptions.Value)
+					if privateOptions.Encoding == v1.BASE64 {
+						data, err = base64.StdEncoding.DecodeString(privateOptions.Value)
+						if err != nil {
+							return nil, fmt.Errorf("error decoding option %d: %s", privateOptions.Option, err)
+						}
+						log.Log.Infof("Setting dhcp option %d to %q", privateOptions.Option, data)
+					}
+					dhcpOptions[dhcp.OptionCode(byte(privateOptions.Option))] = data
 				}
 			}
 		}

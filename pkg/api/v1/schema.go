@@ -914,7 +914,7 @@ const (
 // ---
 // +k8s:openapi-gen=true
 type DHCPPrivateOptions struct {
-	// Option is an Integer value from 224-254
+	// Option is an Integer value from 1-254
 	// Required.
 	Option int `json:"option"`
 	// Value is a String value for the Option provided

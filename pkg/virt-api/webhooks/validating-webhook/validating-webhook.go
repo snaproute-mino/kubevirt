@@ -1220,7 +1220,7 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 							Field:   privateOptionField.Index(oidx).Child("option").String(),
 						})
 					}
-					if DHCPPrivateOption.Encoding != v1.PLAINTEXT && DHCPPrivateOption.Encoding != v1.BASE64 {
+					if !(DHCPPrivateOption.Encoding == "" || DHCPPrivateOption.Encoding == v1.PLAINTEXT || DHCPPrivateOption.Encoding == v1.BASE64) {
 						causes = append(causes, metav1.StatusCause{
 							Type:    metav1.CauseTypeFieldValueInvalid,
 							Message: "provided DHCPPrivateOptions has an invalid encoding type, must be either 'plaintext' or 'base64'",
@@ -1228,13 +1228,7 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 						})
 					}
 				}
-			}
 
-			if iface.Model == "virtio" || iface.Model == "" {
-				isVirtioNicRequested = true
-			}
-
-			if iface.DHCPOptions != nil {
 				for index, ip := range iface.DHCPOptions.NTPServers {
 					if net.ParseIP(ip).To4() == nil {
 						causes = append(causes, metav1.StatusCause{
@@ -1244,6 +1238,10 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 						})
 					}
 				}
+			}
+
+			if iface.Model == "virtio" || iface.Model == "" {
+				isVirtioNicRequested = true
 			}
 		}
 		// Network interface multiqueue can only be set for a virtio driver

@@ -539,7 +539,7 @@ func schema_kubevirt_pkg_api_v1_DHCPPrivateOptions(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"option": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Option is an Integer value from 224-254 Required.",
+							Description: "Option is an Integer value from 1-254 Required.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

@@ -4217,7 +4217,7 @@
       "type": "string"
      },
      "option": {
-      "description": "Option is an Integer value from 224-254\nRequired.",
+      "description": "Option is an Integer value from 1-254\nRequired.",
       "type": "integer",
       "format": "int32"
      },
