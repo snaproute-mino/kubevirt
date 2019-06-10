@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
@@ -115,53 +116,6 @@ func prepareDHCPOptions(
 
 	dhcpOptions := dhcp.Options{}
 
-	if customDHCPOptions != nil {
-
-		// Process private options first so they can be overridden by those exposed through API variables
-		if customDHCPOptions.PrivateOptions != nil {
-			for _, privateOptions := range customDHCPOptions.PrivateOptions {
-				if privateOptions.Option > 0 && privateOptions.Option < 255 {
-					var err error
-					data := []byte(privateOptions.Value)
-					if privateOptions.Encoding == v1.BASE64 {
-						data, err = base64.StdEncoding.DecodeString(privateOptions.Value)
-						if err != nil {
-							return nil, fmt.Errorf("error decoding option %d: %s", privateOptions.Option, err)
-						}
-						log.Log.Infof("Setting dhcp option %d to %q", privateOptions.Option, data)
-					}
-					dhcpOptions[dhcp.OptionCode(byte(privateOptions.Option))] = data
-				}
-			}
-		}
-
-		if customDHCPOptions.TFTPServerName != "" {
-			log.Log.Infof("Setting dhcp option tftp server name to %s", customDHCPOptions.TFTPServerName)
-			dhcpOptions[dhcp.OptionTFTPServerName] = []byte(customDHCPOptions.TFTPServerName)
-		}
-		if customDHCPOptions.BootFileName != "" {
-			log.Log.Infof("Setting dhcp option boot file name to %s", customDHCPOptions.BootFileName)
-			dhcpOptions[dhcp.OptionBootFileName] = []byte(customDHCPOptions.BootFileName)
-		}
-
-		if len(customDHCPOptions.NTPServers) > 0 {
-			log.Log.Infof("Setting dhcp option NTP server name to %s", customDHCPOptions.NTPServers)
-
-			ntpServers := [][]byte{}
-
-			for _, server := range customDHCPOptions.NTPServers {
-				ip := net.ParseIP(server).To4()
-
-				if ip == nil {
-					return nil, fmt.Errorf(errorNTPConfiguration, server)
-				}
-				ntpServers = append(ntpServers, []byte(ip))
-			}
-
-			dhcpOptions[dhcp.OptionNetworkTimeProtocolServers] = bytes.Join(ntpServers, nil)
-		}
-	}
-
 	dhcpOptions[dhcp.OptionSubnetMask] = []byte(clientMask)
 	dhcpOptions[dhcp.OptionRouter] = []byte(routerIP)
 	dhcpOptions[dhcp.OptionDomainNameServer] = bytes.Join(dnsIPs, nil)
@@ -189,6 +143,66 @@ func prepareDHCPOptions(
 		dhcpOptions[dhcp.OptionDomainName] = []byte(domainName)
 	}
 
+	if customDHCPOptions != nil {
+
+		// Process private options first so they can be overridden by those exposed through API variables
+		if customDHCPOptions.PrivateOptions != nil {
+			for _, privateOptions := range customDHCPOptions.PrivateOptions {
+				var err error
+
+				if privateOptions.Option < 0 || privateOptions.Option > 254 {
+					return nil, fmt.Errorf("invalid option %d: out of allowed range", privateOptions.Option)
+				}
+
+				var data []byte
+
+				switch privateOptions.Encoding {
+				case v1.BASE64:
+					data, err = base64.StdEncoding.DecodeString(privateOptions.Value)
+					if err != nil {
+						return nil, fmt.Errorf("error decoding option %d: %s", privateOptions.Option, err)
+					}
+					log.Log.V(4).Infof("Setting dhcp option %d to %q", privateOptions.Option, data)
+				case v1.HEX:
+					data, err = hex.DecodeString(privateOptions.Value)
+					if err != nil {
+						return nil, fmt.Errorf("error decoding option %d: %s", privateOptions.Option, err)
+					}
+					log.Log.V(4).Infof("Setting dhcp option %d to %q", privateOptions.Option, data)
+				default:
+					data = []byte(privateOptions.Value)
+				}
+				dhcpOptions[dhcp.OptionCode(byte(privateOptions.Option))] = data
+			}
+		}
+
+		if customDHCPOptions.TFTPServerName != "" {
+			log.Log.V(4).Infof("Setting dhcp option tftp server name to %s", customDHCPOptions.TFTPServerName)
+			dhcpOptions[dhcp.OptionTFTPServerName] = []byte(customDHCPOptions.TFTPServerName)
+		}
+		if customDHCPOptions.BootFileName != "" {
+			log.Log.V(4).Infof("Setting dhcp option boot file name to %s", customDHCPOptions.BootFileName)
+			dhcpOptions[dhcp.OptionBootFileName] = []byte(customDHCPOptions.BootFileName)
+		}
+
+		if len(customDHCPOptions.NTPServers) > 0 {
+			log.Log.V(4).Infof("Setting dhcp option NTP server name to %s", customDHCPOptions.NTPServers)
+
+			ntpServers := [][]byte{}
+
+			for _, server := range customDHCPOptions.NTPServers {
+				ip := net.ParseIP(server).To4()
+
+				if ip == nil {
+					return nil, fmt.Errorf(errorNTPConfiguration, server)
+				}
+				ntpServers = append(ntpServers, []byte(ip))
+			}
+
+			dhcpOptions[dhcp.OptionNetworkTimeProtocolServers] = bytes.Join(ntpServers, nil)
+		}
+	}
+
 	return dhcpOptions, nil
 }
 
@@ -201,7 +215,6 @@ type DHCPHandler struct {
 }
 
 func (h *DHCPHandler) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options dhcp.Options) (d dhcp.Packet) {
-	log.Log.V(4).Info("Serving a new request")
 	if mac := p.CHAddr(); !bytes.Equal(mac, h.clientMAC) {
 		log.Log.V(4).Info("The request is not from our client")
 		return nil // Is not our client
@@ -211,19 +224,23 @@ func (h *DHCPHandler) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options
 
 	case dhcp.Discover:
 		log.Log.V(4).Info("The request has message type DISCOVER")
-		return dhcp.ReplyPacket(p, dhcp.Offer, h.serverIP, h.clientIP, h.leaseDuration,
+		d = dhcp.ReplyPacket(p, dhcp.Offer, h.serverIP, h.clientIP, h.leaseDuration,
 			h.options.SelectOrderOrAll(nil))
 
 	case dhcp.Request:
 		log.Log.V(4).Info("The request has message type REQUEST")
-		return dhcp.ReplyPacket(p, dhcp.ACK, h.serverIP, h.clientIP, h.leaseDuration,
+		d = dhcp.ReplyPacket(p, dhcp.ACK, h.serverIP, h.clientIP, h.leaseDuration,
 			h.options.SelectOrderOrAll(nil))
 
 	default:
 		log.Log.V(4).Info("The request has unhandled message type")
-		return nil // Ignored message type
-
+		d = nil // Ignored message type
 	}
+	if d != nil {
+		log.Log.V(4).Infof("Request packet: %q", dhcpPacketToString(p))
+		log.Log.V(4).Infof("Reply packet: %q", dhcpPacketToString(d))
+	}
+	return d
 }
 
 func sortRoutes(routes []netlink.Route) []netlink.Route {
@@ -340,4 +357,51 @@ func getDomainName(searchDomains []string) string {
 		}
 	}
 	return selected
+}
+
+func dhcpPacketToString(p dhcp.Packet) string {
+	packetTemplate := `
+	Operation: %s,
+	Hardware Type: %s,
+	Hardware Address Length: %d,
+	Hops: %d,
+	Transaction Identifier (xid): 0x%x,
+	Seconds: %d,
+	Flags: 0x%x   Broadcast: %t,
+	Client IP Address: %s,
+	Your IP Address: %s,
+	Server IP Address: %s,
+	Gateway IP Address: %s,
+	Client Hardware Address: %s,
+	Server Name: %s,
+	File: %s,
+	Options:
+	%s
+	`
+	var oStrings []string
+	for option, value := range p.ParseOptions() {
+		oStrings = append(oStrings, fmt.Sprintf("%d - %s", option, value))
+	}
+
+	pString := fmt.Sprintf(
+		packetTemplate,
+		p.OpCode(),
+		p.HType(),
+		p.HLen(),
+		p.Hops(),
+		p.XId(),
+		p.Secs(),
+		p.Flags(),
+		p.Broadcast(),
+		p.CIAddr(),
+		p.YIAddr(),
+		p.SIAddr(),
+		p.GIAddr(),
+		p.CHAddr(),
+		p.SName(),
+		p.File(),
+		strings.Join(oStrings, ",\n"),
+	)
+
+	return pString
 }

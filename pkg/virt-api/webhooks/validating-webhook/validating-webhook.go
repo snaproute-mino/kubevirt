@@ -1268,10 +1268,10 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 							Field:   privateOptionField.Index(oidx).Child("option").String(),
 						})
 					}
-					if !(DHCPPrivateOption.Encoding == "" || DHCPPrivateOption.Encoding == v1.PLAINTEXT || DHCPPrivateOption.Encoding == v1.BASE64) {
+					if !(DHCPPrivateOption.Encoding == "" || DHCPPrivateOption.Encoding == v1.PLAINTEXT || DHCPPrivateOption.Encoding == v1.BASE64 || DHCPPrivateOption.Encoding == v1.HEX) {
 						causes = append(causes, metav1.StatusCause{
 							Type:    metav1.CauseTypeFieldValueInvalid,
-							Message: "provided DHCPPrivateOptions has an invalid encoding type, must be either 'plaintext' or 'base64'",
+							Message: "provided DHCPPrivateOptions has an invalid encoding type, must be either 'plaintext', 'base64', or 'hex'",
 							Field:   privateOptionField.Index(oidx).Child("encoding").String(),
 						})
 					}

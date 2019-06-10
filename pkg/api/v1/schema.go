@@ -908,6 +908,7 @@ type OptionEncoding string
 const (
 	PLAINTEXT OptionEncoding = "plaintext"
 	BASE64    OptionEncoding = "base64"
+	HEX       OptionEncoding = "hex"
 )
 
 // DHCPExtraOptions defines Extra DHCP options for a VM.
